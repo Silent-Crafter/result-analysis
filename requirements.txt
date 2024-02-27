@@ -1,2 +1,3 @@
 python-poppler
 xlsxwriter
+python-magic
