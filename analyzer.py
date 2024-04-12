@@ -8,16 +8,20 @@ def subjectTopper(df: DataFrame, subject: str) -> DataFrame:
 
 
 def top10(df: DataFrame) -> DataFrame:
-    return df.loc[df["CGPA"].idxmax()]
+    sem = "SGPA"
+    return df["SGPA"].sort_values(ascending=False).head(10)
 
 
 def analyze(data: dict):
-    df = DataFrame(data["RESULT"])
-    for subject in set(df['SUBJECT']):
-        topper = subjectTopper(df, subject)
+    print(data)
+    t10 = top10(DataFrame(data["STUDENT_INFO"]).T)
+    print("TOP 10:\n", t10)
+    for subject in set(data['SUBJECTS'].keys()):
+        topper = subjectTopper(DataFrame(data["RESULT"]), subject)
+        print("\nSUBJECT TOPPERS:")
         print(subject, data["SUBJECTS"][subject], topper['SEAT NO'], topper['TOT'])
 
 
 if __name__ == '__main__':
-    data = parse('gadget.pdf')
+    data = parse('insem gazette.pdf')
     analyze(data)

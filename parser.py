@@ -5,10 +5,12 @@ import re
 def parse(pdffile):
     patterns = {
         "seat_no": r"Seat No:.*?(\w+)",
+        "prn": r"PRN:\s*([\d\w]*)",
         "name": r"Name:\s+?([\w]+?)\s+",
         "mother_name": r"Mother’s Name:[\s]*?([\w]+?)\s+[\w]",
-        "cgpa": r"cgpa\s*([\d\-])*",
-        "sgpa": r"sgpa\s*([\d\-])*",
+        "cgpa": r"cgpa\s*([\d\-\.]*)",
+        "sgpa": r"sgpa\s*([\d\-\.]*)",
+        "college": r"College:\s*([\w\d\s]*)",
         "marks": r"^(\d{6})" + r"\s*(\w*)" + r"\s*[\d\-/]*" * 7 + r"\s*(\d*)" + r"\s*(\d*)" + r"\s*(\w*)" + r"\s*(\d*)" + r"[\d\s]*"
     }
 
@@ -16,40 +18,42 @@ def parse(pdffile):
 
     pdf = load_from_file(pdffile)
     marks_data = []
-    for count in range(pdf.pages-1):
+    for count in range(pdf.pages):
         page = pdf.create_page(count)
         txt = page.text()
 
         seat_no = re.findall(patterns["seat_no"], txt)[0].strip()
         name = re.findall(patterns["name"], txt)[0].strip()
         mother_name = re.findall(patterns["mother_name"], txt)[0].strip()
+        prn = re.findall(patterns["prn"], txt)[0].strip()
 
-        data["STUDENT_INFO"][seat_no] = {"NAME": name, "MOTHER": mother_name}
+        data["STUDENT_INFO"][seat_no] = {"NAME": name, "MOTHER": mother_name, "PRN": prn}
 
         cgpa = re.findall(patterns["cgpa"], txt)
         sgpa = re.findall(patterns["sgpa"], txt)
 
         if not cgpa:
-            cgpa = -1
+            pass
         elif cgpa[0] == '-':
-            cgpa = -1
+            data["STUDENT_INFO"][seat_no]["CGPA"] = -1
         else:
-            cgpa = int(cgpa[0])
+            data["STUDENT_INFO"][seat_no]["CGPA"] = float(cgpa[0])
 
         if not sgpa:
-            sgpa = -1
+            pass
         elif sgpa[0] == '-':
-            sgpa = -1
+            data["STUDENT_INFO"][seat_no]["SGPA"] = -1
         else:
-            sgpa = int(sgpa[0])
+            data["STUDENT_INFO"][seat_no]["SGPA"] = float(sgpa[0])
 
-        data["STUDENT_INFO"][seat_no]["CGPA"] = cgpa
-        data["STUDENT_INFO"][seat_no]["SEM 1 RESULT"] = "FAIL" if cgpa == -1 else "PASS"
-        data["STUDENT_INFO"][seat_no]["SGPA"] = sgpa
-        data["STUDENT_INFO"][seat_no]["SEM 2 RESULT"] = "FAIL" if sgpa == -1 else "PASS"
 
         sem = 1
+        college = None
         for line in txt.splitlines():
+            if not college:
+                college = re.findall(patterns["college"], line.strip())
+                if college:
+                    data["STUDENT_INFO"][seat_no]["COLLEGE"] = college[0]
             _sem = re.findall(r"sem(\d)", line.strip())
             if _sem:
                 sem = int(_sem[0])
@@ -58,14 +62,6 @@ def parse(pdffile):
             if stuff:
                 subject, subname, tot, cr, grade, gp = stuff[0]
                 data["SUBJECTS"][subject] = subname
-                # marks_data[counter]['SEAT NO'] = seat_no
-                # marks_data[counter]['NAME'] = name
-                # marks_data[counter]['SEM'] = int(sem)
-                # marks_data[counter]['SUBJECT'] = subject
-                # marks_data[counter]['TOT'] = int(tot)
-                # marks_data[counter]['GRADE'] = grade
-                # marks_data[counter]['GP'] = gp
-                # marks_data[counter]['CR'] = cr
 
                 marks_data.append({
                     "SEAT NO": seat_no,
@@ -78,13 +74,11 @@ def parse(pdffile):
                     "CR": cr
                 })
 
-                # counter += 1
-
     data["RESULT"] = marks_data
     return data
 
 
 if __name__ == "__main__":
-    data = parse("gadget.pdf")
+    data = parse("insem gazette.pdf")
     for key, value in data["STUDENT_INFO"].items():
         print(f"{key}: {value}")
