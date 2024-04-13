@@ -11,10 +11,10 @@ def parse(pdffile):
         "cgpa": r"cgpa\s*([\d\-\.]*)",
         "sgpa": r"sgpa\s*([\d\-\.]*)",
         "college": r"College:\s*([\w\d\s]*)",
-        "marks": r"^(\d{6})" + r"\s*(\w*)" + r"\s*[\d\-/]*" * 7 + r"\s*(\d*)" + r"\s*(\d*)" + r"\s*(\w*)" + r"\s*(\d*)" + r"[\d\s]*"
+        "marks": r"^(\d{6})" + r"\s*(\w*)" + r"\s*[\d\-/]*" * 7 + r"\s*([\d\w]*)" + r"\s*(\d*)" + r"\s*(\w*)" + r"\s*(\d*)" + r"[\d\s]*"
     }
 
-    data = {"SUBJECTS": {}, "STUDENT_INFO": {}, "RESULT": []}
+    data = {"EXAM": "", "SUBJECTS": {}, "STUDENT_INFO": {}, "RESULT": []}
 
     pdf = load_from_file(pdffile)
     marks_data = []
@@ -32,20 +32,23 @@ def parse(pdffile):
         cgpa = re.findall(patterns["cgpa"], txt)
         sgpa = re.findall(patterns["sgpa"], txt)
 
-        if not cgpa:
-            pass
-        elif cgpa[0] == '-':
-            data["STUDENT_INFO"][seat_no]["CGPA"] = -1
-        else:
-            data["STUDENT_INFO"][seat_no]["CGPA"] = float(cgpa[0])
-
         if not sgpa:
             pass
         elif sgpa[0] == '-':
             data["STUDENT_INFO"][seat_no]["SGPA"] = -1
+            data["EXAM"] = "INSEM"
         else:
             data["STUDENT_INFO"][seat_no]["SGPA"] = float(sgpa[0])
+            data["EXAM"] = "INSEM"
 
+        if not cgpa:
+            pass
+        elif cgpa[0] == '-':
+            data["STUDENT_INFO"][seat_no]["CGPA"] = -1
+            data["EXAM"] = "ENDSEM"
+        else:
+            data["STUDENT_INFO"][seat_no]["CGPA"] = float(cgpa[0])
+            data["EXAM"] = "ENDSEM"
 
         sem = 1
         college = None
