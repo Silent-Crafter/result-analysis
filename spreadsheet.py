@@ -14,7 +14,6 @@ class Spreadsheet:
         workbook.create_sheet("ANALYSIS")
 
         df = DataFrame(self.data["STUDENT_INFO"]).T
-        print(self.data["RESULT"][-1])
         counter = 0
         for student in self.data["STUDENT_INFO"].keys():
             workbook.create_sheet(student)
@@ -51,6 +50,8 @@ class Spreadsheet:
 
                 try:
                     while marks_data[counter]["SEM"] == curr_sem:
+                        if marks_data[counter]["SEAT NO"] != student:
+                            break
                         cell_index_col = 2
                         worksheet.cell(cell_index_row, cell_index_col, marks_data[counter]["SUBJECT"])
                         worksheet.cell(cell_index_row, cell_index_col + 1,
@@ -60,14 +61,13 @@ class Spreadsheet:
                         worksheet.cell(cell_index_row, cell_index_col + 4, marks_data[counter]["GP"])
                         cell_index_row += 1
                         counter += 1
-                        print(marks_data[counter])
                 except IndexError:
                     break
 
         worksheet = workbook["ANALYSIS"]
 
-        passed = len(df.loc[df["CGPA"] > 0])
-        failed = len(df.loc[df["CGPA"] == -1])
+        passed = len(df.loc[df["CGPA" if self.data["EXAM"] == "SEM2" else "SGPA"] > 0])
+        failed = len(df.loc[df["CGPA" if self.data["EXAM"] == "SEM2" else "SGPA"] == -1])
 
         worksheet.append(["PASSED", passed])
         worksheet.append(["FAILED", failed])
@@ -89,3 +89,4 @@ if __name__ == '__main__':
     data = parse('endsem gazette.pdf')
     wb = Spreadsheet('demo.xlsx', data)
     wb.create()
+    print(data["RESULT"])

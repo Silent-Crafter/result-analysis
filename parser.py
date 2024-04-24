@@ -36,19 +36,19 @@ def parse(pdffile):
             pass
         elif sgpa[0] == '-':
             data["STUDENT_INFO"][seat_no]["SGPA"] = -1
-            data["EXAM"] = "INSEM"
+            data["EXAM"] = "SEM1"
         else:
             data["STUDENT_INFO"][seat_no]["SGPA"] = float(sgpa[0])
-            data["EXAM"] = "INSEM"
+            data["EXAM"] = "SEM1"
 
         if not cgpa:
             pass
         elif cgpa[0] == '-':
             data["STUDENT_INFO"][seat_no]["CGPA"] = -1
-            data["EXAM"] = "ENDSEM"
+            data["EXAM"] = "SEM2"
         else:
             data["STUDENT_INFO"][seat_no]["CGPA"] = float(cgpa[0])
-            data["EXAM"] = "ENDSEM"
+            data["EXAM"] = "SEM2"
 
         sem = 1
         college = None

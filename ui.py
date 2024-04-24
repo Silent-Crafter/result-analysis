@@ -6,12 +6,14 @@ import parser
 from tkinter import filedialog, messagebox
 import customtkinter as ctk
 from spreadsheet import Spreadsheet
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 import os
 
 
 class App(ctk.CTk):
-
     class Child(ctk.CTkToplevel):
         def __init__(self, parent, **kwargs):
             super().__init__()
@@ -28,6 +30,13 @@ class App(ctk.CTk):
             self.subject_topper_button = None
             self.pass_fail = None
 
+            self.curr_frame = None
+
+        def create_output_frame(self) -> ctk.CTkFrame:
+            output_frame = ctk.CTkFrame(self)
+            output_frame.grid(row=0, column=2, columnspan=6, rowspan=6, sticky="nsew")
+            return output_frame
+
         def setup_ui(self):
             x_coordinate = (self.parent.screen_width // 2) - (self.width // 2)
             y_coordinate = (self.parent.screen_height // 2) - (self.height // 2)
@@ -41,10 +50,7 @@ class App(ctk.CTk):
             self.button_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
             self.button_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-            self.output_frame = ctk.CTkFrame(self)
-            self.output_frame.grid(row=0, column=2, columnspan=6, rowspan=6, sticky="nsew")
-            self.output_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
-            self.output_frame.grid_columnconfigure(0, weight=1)
+            self.output_frame = self.create_output_frame()
 
             self.top10_button = ctk.CTkButton(
                 self.button_frame,
@@ -142,28 +148,174 @@ class App(ctk.CTk):
             self.upload_label.configure(font=("Sans Serif", 36))
 
     def analyze_button_handler(self):
-        data = parser.parse(self.infile)
-        results = analyzer.analyze(data)
+        self.data = parser.parse(self.infile)
+        self.results = analyzer.analyze(self.data)
+        print(self.results)
         self.label_text.set("Analysis Complete!!")
-        # sheet = Spreadsheet('demo.xlsx', data)
-        # sheet.create()
+        sheet = Spreadsheet('result.xlsx', self.data)
+        sheet.create()
 
-        child = self.Child(self)
-        child.setup_ui()
-        child.mainloop()
+        messagebox.showinfo("ANALYSIS STATUS!",
+                            "Analysis Completed successfully. Spreadsheet has been generated with name result.xlsx")
 
+        self.child = self.Child(self)
+        self.child.setup_ui()
+        self.child.mainloop()
 
     def top10_handler(self):
-        pass
+        if self.child.output_frame:
+            self.child.output_frame.destroy()
 
+        top10_frame: ctk.CTkFrame = self.child.create_output_frame()
+        self.child.output_frame = top10_frame
+
+        top10_frame.grid_rowconfigure(tuple(range(20)), weight=1)
+        top10_frame.grid_columnconfigure(tuple(range(3)), weight=1)
+
+        top10 = self.results["TOP 10"]
+
+        curr_row = 5
+        ctk.CTkLabel(
+            top10_frame,
+            text=f"SEAT NO",
+            font=("sans-serif", 24)
+        ).grid(row=curr_row - 1, column=0, padx=5, pady=5)
+        ctk.CTkLabel(
+            top10_frame,
+            text=f"STUDENT NAME",
+            font=("sans-serif", 24)
+        ).grid(row=curr_row - 1, column=1, padx=5, pady=5)
+        ctk.CTkLabel(
+            top10_frame,
+            text=f"GPA",
+            font=("sans-serif", 24)
+        ).grid(row=curr_row - 1, column=2, padx=5, pady=5)
+        curr_row += 1
+        for student, gpa in top10.items():
+            ctk.CTkLabel(
+                top10_frame,
+                text=f"{student}",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row, column=0, padx=5, pady=5)
+            ctk.CTkLabel(
+                top10_frame,
+                text=f"{self.data['STUDENT_INFO'][student]['NAME']}",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row, column=1, padx=5, pady=5)
+            ctk.CTkLabel(
+                top10_frame,
+                text=f"{gpa}",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row, column=2, padx=5, pady=5)
+            curr_row += 1
 
     def subject_topper_handler(self):
-        pass
+        if self.child.output_frame:
+            self.child.output_frame.destroy()
 
+        self.child.output_frame = self.child.create_output_frame()
+        self.child.output_frame.grid_rowconfigure(tuple(range(15)), weight=1)
+        self.child.output_frame.grid_columnconfigure(tuple(range(3)), weight=1)
+
+        sub_tops = self.results["SUBJECT TOPPERS"]
+        toppers = []
+
+        def display_data():
+            topper_frame = ctk.CTkFrame(self.child.output_frame)
+            topper_frame.grid_rowconfigure(tuple(range(12)), weight=1)
+            topper_frame.grid_columnconfigure(tuple(range(3)), weight=1)
+            topper_frame.grid(row=3, column=0, columnspan=3, rowspan=10, sticky=ctk.NSEW)
+            self.child.update()
+
+            curr_row = 1
+            ctk.CTkLabel(
+                topper_frame,
+                text=f"SEAT NO",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row - 1, column=0, padx=5, pady=5)
+            ctk.CTkLabel(
+                topper_frame,
+                text=f"STUDENT NAME",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row - 1, column=1, padx=5, pady=5)
+            ctk.CTkLabel(
+                topper_frame,
+                text=f"TOT",
+                font=("sans-serif", 24)
+            ).grid(row=curr_row - 1, column=2, padx=5, pady=5)
+            curr_row += 1
+            for seat_no, tot in toppers:
+                ctk.CTkLabel(
+                    topper_frame,
+                    text=f"{seat_no}",
+                    font=("sans-serif", 24)
+                ).grid(row=curr_row, column=0, padx=5, pady=5)
+                ctk.CTkLabel(
+                    topper_frame,
+                    text=f'{self.data["STUDENT_INFO"][seat_no]["NAME"]}',
+                    font=("sans-serif", 24)
+                ).grid(row=curr_row, column=1, padx=5, pady=5)
+                ctk.CTkLabel(
+                    topper_frame,
+                    text=f"{tot}",
+                    font=("sans-serif", 24)
+                ).grid(row=curr_row, column=2, padx=5, pady=5)
+                curr_row += 1
+
+        def combobox_callback(option: str):
+            nonlocal toppers
+            for key, value in self.data['SUBJECTS'].items():
+                if value == option:
+                    toppers = sub_tops[key]
+                    break
+            display_data()
+            self.child.update()
+
+        subjects = list(self.data['SUBJECTS'].values())
+
+        dropdown = ctk.CTkComboBox(
+            self.child.output_frame,
+            values=subjects,
+            font=("sans-serif", 24),
+            command=combobox_callback
+        )
+        dropdown.grid(row=2, column=1, padx=5, pady=5)
 
     def pass_fail_handler(self):
-        pass
+        if self.child.output_frame:
+            self.child.output_frame.destroy()
 
+        self.child.output_frame = self.child.create_output_frame()
+        self.child.output_frame.grid_rowconfigure(tuple(range(10)), weight=1)
+        self.child.output_frame.grid_columnconfigure(tuple(range(3)), weight=1)
+
+        ctk.CTkLabel(
+            self.child.output_frame,
+            text="Pass & Fail chart",
+            font=("sans-serif", 24, "underline"),
+        ).grid(row=1, column=1, padx=5, pady=5)
+
+        ctk.CTkLabel(
+            self.child.output_frame,
+            text=f"PASSED: {self.results['PASS FAIL']['PASS']}    FAILED: {self.results['PASS FAIL']['FAIL']}",
+            font=("sans-serif", 24)
+        ).grid(row=2, column=1, padx=5, pady=5)
+
+        graphframe = ctk.CTkFrame(self.child.output_frame)
+        graphframe.grid(row=3, column=0, rowspan=7, columnspan=3, sticky="nsew")
+        graphframe.grid_rowconfigure(tuple(range(7)), weight=1)
+        graphframe.grid_columnconfigure(tuple(range(7)), weight=1)
+
+        fig = Figure()
+        fig.add_subplot().pie(self.results["PASS FAIL"].values(), labels=self.results["PASS FAIL"].keys(), autopct="%.2f%%")
+
+        canvas = FigureCanvasTkAgg(fig, master=graphframe)
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=1, column=1, padx=5, pady=5, rowspan=5, columnspan=5)
+
+        graphframe.update()
+        self.child.output_frame.update()
+        self.child.update()
 
     def run(self):
         self.__setup()
